@@ -1,4 +1,4 @@
-name,16,list
+name_text,16,list
 level,1
 unknown1,3
 current_hp,2

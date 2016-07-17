@@ -163,6 +163,61 @@ class MonsterNameObject(TableObject):
 class CharacterObject(TableObject):
     flag = "c"
     flag_description = "characters"
+    mutate_attributes = {"level": (1, 99),
+                         "max_hp": (1, 32000),
+                         "attack": (1, 99),
+                         "defense": (1, 99),
+                         "speed": (1, 99),
+                         "magic": (1, 99),
+                         "accuracy": (1, 99),
+                         "white": (0, 99),
+                         "black": (0, 99),
+                         "wizard": (0, 99),
+                         }
+    intershuffle_attributes = [
+        "max_hp", "attack", "defense", "speed", "magic", "accuracy",
+        ("white", "black", "known_magic"), ("wizard", "known_wizard")]
+
+    @property
+    def rank(self):
+        return self.level
+
+    @property
+    def name(self):
+        return bytes_to_text(self.name_text)
+
+    @property
+    def known_black(self):
+        return self.known_magic & 0xF
+
+    @property
+    def known_white(self):
+        return self.known_magic >> 4
+
+    def mutate(self):
+        self.known_magic = shuffle_bits(self.known_magic)
+        known_wizard = self.known_wizard >> 4
+        self.known_wizard = shuffle_bits(known_wizard, size=4) << 4
+        super(CharacterObject, self).mutate()
+
+    def cleanup(self):
+        self.current_hp = self.max_hp
+        for attr in ["attack", "defense", "speed", "magic"]:
+            setattr(self, "%s2" % attr, getattr(self, attr))
+        if ((self.known_white and self.black and
+                not self.white and not self.known_black) or
+                (self.known_black and self.white and
+                    not self.black and not self.known_white)):
+            self.white, self.black = self.black, self.white
+        if "DemoPlay" in self.name:
+            return
+        for attr in ["white", "black", "wizard"]:
+            if getattr(self, "known_%s" % attr):
+                avg = (self.white + self.black + self.wizard) / 3
+                avg = max(avg, 1)
+                setattr(self, attr, max(getattr(self, attr), avg))
+            else:
+                setattr(self, attr, 0)
 
 
 class BattleRoundsObject(TableObject):
@@ -181,8 +236,8 @@ if __name__ == "__main__":
     hexify = lambda x: "{0:0>2}".format("%x" % x)
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
-    for w in WeaponObject.every:
-        print w.index, w.power
     clean_and_write(ALL_OBJECTS)
+    for c in CharacterObject.every:
+        print c.name, "%x" % c.known_magic, c.white, c.black, "%x" % c.known_wizard, c.wizard
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=32)
     finish_interface()
