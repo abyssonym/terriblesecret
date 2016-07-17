@@ -14,7 +14,7 @@ ALL_OBJECTS = None
 texttable = {}
 TEXTTABLEFILE = "mq.tbl"
 for line in open(TEXTTABLEFILE):
-    a, b = line.split("=")
+    a, b = line.strip("\n").split("=")
     a = int(a, 0x10)
     texttable[a] = b
 
@@ -27,10 +27,35 @@ class TreasureIndexObject(TableObject): pass
 class WeaponObject(TableObject): pass
 class AttackObject(TableObject): pass
 class ArmorObject(TableObject): pass
-class MonsterObject(TableObject): pass
+class DropObject(TableObject): pass
+
+
+class MonsterObject(TableObject):
+    @property
+    def name(self):
+        return MonsterNameObject.get(self.index).name
+
+    @property
+    def drop(self):
+        return DropObject.get(self.index)
+
+    @property
+    def xp(self):
+        return self.drop.xp * 3
+
+    @property
+    def gp(self):
+        return self.drop.gp * 3
+
+
 class TreasureObject(TableObject): pass
 class BattleRewardObject(TableObject): pass
-class MonsterNameObject(TableObject): pass
+class MonsterNameObject(TableObject):
+    @property
+    def name(self):
+        return bytes_to_text(self.text)
+
+
 class CharacterObject(TableObject): pass
 
 
@@ -47,6 +72,10 @@ if __name__ == "__main__":
                    if isinstance(g, type) and issubclass(g, TableObject)
                    and g not in [TableObject]]
     run_interface(ALL_OBJECTS, snes=True)
+    hexify = lambda x: "{0:0>2}".format("%x" % x)
+    numify = lambda x: "{0: >3}".format(x)
+    for m in MonsterObject.every:
+        print m.name, m.xp, m.gp
     import pdb; pdb.set_trace()
     minmax = lambda x: (min(x), max(x))
     clean_and_write(ALL_OBJECTS)

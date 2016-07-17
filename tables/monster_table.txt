@@ -3,4 +3,5 @@ strength,1
 defense,1
 speed,1
 magic,1
-unknown,8
+unknown,7,list
+counter,1

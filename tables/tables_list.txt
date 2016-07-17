@@ -3,6 +3,7 @@ TreasureIndexObject treasure_index_table.txt    8000    256
 WeaponObject        weapon_table.txt            13c00   15
 AttackObject        attack_table.txt            13c78   156
 ArmorObject         armor_table.txt             14127   17
+DropObject          drop_table.txt              1417D   81
 MonsterObject       monster_table.txt           14275   81
 TreasureObject      treasure_table.txt          3b0ca   1419
 BattleRewardObject  rewards_table.txt           3efa1   20

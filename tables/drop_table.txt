@@ -1,0 +1,3 @@
+xp,1
+gp,1
+unknown,1
