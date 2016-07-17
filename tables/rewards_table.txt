@@ -1,2 +1,1 @@
-reward,1
-reward_type,1
+reward,2

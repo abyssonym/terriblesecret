@@ -152,8 +152,45 @@ class MonsterObject(TableObject):
             self.counter |= newcounter
 
 
-class TreasureObject(TableObject): pass
-class BattleRewardObject(TableObject): pass
+class TreasureObject(TableObject):
+    flag = "t"
+
+
+class BattleRewardObject(TableObject):
+    flag = "t"
+
+    @property
+    def is_xp(self):
+        return bool(self.reward & 0x8000)
+
+    @property
+    def is_item(self):
+        return bool(self.reward & 0x4000)
+
+    @property
+    def is_gp(self):
+        return not (self.is_xp or self.is_item)
+
+    @property
+    def value(self):
+        return self.reward & 0x3FF
+
+    def cleanup(self):
+        assert not (self.is_xp and self.is_item)
+        assert not self.reward & 0x3C00
+
+    def mutate(self):
+        self.reward = 0
+        rewardtype = random.choice(["xp", "item", "gp"])
+        if rewardtype == "item":
+            self.reward |= 0x4000
+            self.reward |= random.randint(1, 0x4D)
+        else:
+            if rewardtype == "xp":
+                self.reward |= 0x8000
+            self.reward |= random.randint(1, 0x3FF)
+
+
 class MonsterNameObject(TableObject):
     @property
     def name(self):
@@ -164,7 +201,7 @@ class CharacterObject(TableObject):
     flag = "c"
     flag_description = "characters"
     mutate_attributes = {"level": (1, 99),
-                         "max_hp": (1, 32000),
+                         "max_hp": (40, 32000),
                          "attack": (1, 99),
                          "defense": (1, 99),
                          "speed": (1, 99),
@@ -201,6 +238,9 @@ class CharacterObject(TableObject):
         super(CharacterObject, self).mutate()
 
     def cleanup(self):
+        self.max_hp = int(round(self.max_hp / 40.0)) * 40
+        assert self.max_hp >= 40
+        assert not self.max_hp % 40
         self.current_hp = self.max_hp
         for attr in ["attack", "defense", "speed", "magic"]:
             setattr(self, "%s2" % attr, getattr(self, attr))
@@ -221,8 +261,7 @@ class CharacterObject(TableObject):
 
 
 class BattleRoundsObject(TableObject):
-    flag = "b"
-    flag_description = "battlefields"
+    flag = "t"
     mutate_attributes = {"num_rounds": (0, 0xFF)}
 
 
@@ -237,7 +276,9 @@ if __name__ == "__main__":
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
     clean_and_write(ALL_OBJECTS)
-    for c in CharacterObject.every:
-        print c.name, "%x" % c.known_magic, c.white, c.black, "%x" % c.known_wizard, c.wizard
-    rewrite_snes_meta("FFMQ-R", VERSION, megabits=32)
+    #for c in CharacterObject.every:
+    #    print c.name, "%x" % c.known_magic, c.white, c.black, "%x" % c.known_wizard, c.wizard
+    #for b in BattleRewardObject.every:
+    #    print b.index, b.is_xp, b.is_gp, hexify(b.value), b.reward & 0x3c00
+    rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
     finish_interface()
