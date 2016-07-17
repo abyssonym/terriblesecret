@@ -1,0 +1,11 @@
+# objname tablefile address count grouped
+TreasureIndexObject treasure_index_table.txt    8000    256
+WeaponObject        weapon_table.txt            13c00   15
+AttackObject        attack_table.txt            13c78   156
+ArmorObject         armor_table.txt             14127   17
+MonsterObject       monster_table.txt           14275   81
+TreasureObject      treasure_table.txt          3b0ca   1419
+BattleRewardObject  rewards_table.txt           3efa1   20
+MonsterNameObject   monster_name_table.txt      64ba0   81
+CharacterObject     char_table.txt              650b0   9
+BattleRoundsObject  rounds_table.txt            654d0   20

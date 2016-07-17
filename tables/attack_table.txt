@@ -1,0 +1,7 @@
+element,1
+status,1
+power,1
+effect,1
+sound_effect,1
+targeting,1
+unknown,1

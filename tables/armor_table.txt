@@ -1,0 +1,5 @@
+element,1
+status,1
+position,1
+power,1
+unknown,1
