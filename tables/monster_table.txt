@@ -3,5 +3,8 @@ strength,1
 defense,1
 speed,1
 magic,1
-unknown,7,list
+resistances,1
+immunities,1
+unknown,4,list
+weaknesses,1
 counter,1
