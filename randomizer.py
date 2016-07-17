@@ -1,6 +1,6 @@
 from randomtools.tablereader import TableObject
 from randomtools.utils import (
-    classproperty, mutate_normal,
+    classproperty, mutate_normal, shuffle_bits,
     utilrandom as random)
 from randomtools.interface import (
     get_outfile, run_interface, rewrite_snes_meta,
@@ -24,18 +24,65 @@ def bytes_to_text(data):
 
 
 class TreasureIndexObject(TableObject): pass
-class WeaponObject(TableObject): pass
-class AttackObject(TableObject): pass
-class ArmorObject(TableObject): pass
+
+
+class CombatObject(object):
+    mutate_attributes = {"power": None}
+
+    def mutate(self):
+        super(CombatObject, self).mutate()
+        self.status = shuffle_bits(self.status)
+
+
+class WeaponObject(CombatObject, TableObject):
+    flag = "c"
+    intershuffle_attributes = ["statboost", "status"]
+
+    @property
+    def rank(self):
+        return self.power
+
+    def mutate(self):
+        super(WeaponObject, self).mutate()
+        if random.randint(1, 3) == 3:
+            element = (1 << random.randint(3, 7))
+            self.element |= element
+
+
+class AttackObject(CombatObject, TableObject):
+    flag = "m"
+
+
+class ArmorObject(CombatObject, TableObject):
+    flag = "c"
+    intershuffle_attributes = ["statboost", "element", "status"]
+
+    @property
+    def rank(self):
+        return self.power
+
+    def mutate(self):
+        super(ArmorObject, self).mutate()
+        if random.randint(1, 4) == 4:
+            self.element = shuffle_bits(self.element)
+        else:
+            value = shuffle_bits(self.element >> 3, size=5)
+            value = value << 3
+            self.element = self.element & 0x7
+            self.element |= value
 
 
 class DropObject(TableObject):
+    flag = "t"
+    flag_description = "treasure"
     mutate_attributes = {"xp": None,
                          "gp": None,
                          }
 
 
 class MonsterObject(TableObject):
+    flag = "m"
+    flag_description = "monster stats"
     mutate_attributes = {"hp": (0, 0xFFFE),
                          "strength": None,
                          "defense": None,
@@ -83,11 +130,8 @@ class MonsterObject(TableObject):
             if self.is_boss and attr == "immunities":
                 continue
             value = getattr(self, attr)
-            numbits = bin(value).count("1")
-            digits = random.sample(range(8), numbits)
-            newvalue = 0
-            for d in digits:
-                newvalue |= (1 << d)
+            value = shuffle_bits(value)
+            setattr(self, attr, value)
         while random.choice([True, False]):
             attr = random.choice(["resistances", "weaknesses", "immunities"])
             value = getattr(self, attr)
@@ -101,6 +145,7 @@ class MonsterObject(TableObject):
                 if attr != "immunities" and bin(value).count("1") > 4:
                     continue
                 value |= flag
+            setattr(self, attr, value)
         if random.randint(1, 4) == 4:
             self.counter &= 0x0F
             newcounter = random.choice([0, 0, 0x10, 0x20, 0x40, 0x80, 0x80])
@@ -115,7 +160,9 @@ class MonsterNameObject(TableObject):
         return bytes_to_text(self.text)
 
 
-class CharacterObject(TableObject): pass
+class CharacterObject(TableObject):
+    flag = "c"
+    flag_description = "characters"
 
 
 class BattleRoundsObject(TableObject):
@@ -134,8 +181,8 @@ if __name__ == "__main__":
     hexify = lambda x: "{0:0>2}".format("%x" % x)
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
-    for m in MonsterObject.every:
-        print m.index, m.name, " ".join(map(hexify, m.unknown)), m.hp
+    for w in WeaponObject.every:
+        print w.index, w.power
     clean_and_write(ALL_OBJECTS)
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=32)
     finish_interface()

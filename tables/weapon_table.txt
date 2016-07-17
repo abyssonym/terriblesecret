@@ -1,4 +1,5 @@
 element,1
 status,1
 power,1
-unknown,5
+unknown,4
+statboost,1
