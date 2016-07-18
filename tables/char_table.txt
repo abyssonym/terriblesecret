@@ -3,10 +3,12 @@ level,1
 unknown1,3
 current_hp,2
 max_hp,2
-unknown2,3
 white,1
 black,1
 wizard,1
+white2,1
+black2,1
+wizard2,1
 unknown3,8
 attack,1
 defense,1

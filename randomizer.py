@@ -352,7 +352,8 @@ class CharacterObject(TableObject):
         assert self.max_hp >= 40
         assert not self.max_hp % 40
         self.current_hp = self.max_hp
-        for attr in ["attack", "defense", "speed", "magic"]:
+        for attr in ["attack", "defense", "speed", "magic",
+                     "white", "black", "wizard"]:
             setattr(self, "%s2" % attr, getattr(self, attr))
         if ((self.known_white and self.black and
                 not self.white and not self.known_black) or
