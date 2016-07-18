@@ -237,9 +237,8 @@ class MonsterObject(TableObject):
         for attr in ["resistances", "weaknesses", "immunities"]:
             if self.is_boss and attr == "immunities":
                 continue
-            value = getattr(self, attr)
-            value = shuffle_bits(value)
-            setattr(self, attr, value)
+            value = getattr(self, attr) >> 4
+            value = shuffle_bits(value, size=4) << 4
         while random.choice([True, False]):
             attr = random.choice(["resistances", "weaknesses", "immunities"])
             value = getattr(self, attr)
@@ -254,6 +253,7 @@ class MonsterObject(TableObject):
                     continue
                 value |= flag
             setattr(self, attr, value)
+        self.resistances = self.resistances & 0xF0
         if random.randint(1, 4) == 4:
             self.counter &= 0x0F
             newcounter = random.choice([0, 0, 0x10, 0x20, 0x40, 0x80, 0x80])
