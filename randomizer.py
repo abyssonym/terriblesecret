@@ -3,7 +3,7 @@ from randomtools.utils import (
     classproperty, mutate_normal, shuffle_bits,
     utilrandom as random)
 from randomtools.interface import (
-    get_outfile, run_interface, rewrite_snes_meta,
+    get_outfile, get_seed, get_flags, run_interface, rewrite_snes_meta,
     clean_and_write, finish_interface)
 from os import path
 
@@ -36,6 +36,35 @@ for line in open(TEXTTABLEFILE):
     a, b = line.strip("\n").split("=")
     a = int(a, 0x10)
     texttable[a] = b
+    texttable[b] = a
+
+
+def write_title_screen(outfile, seed, flags):
+    assert texttable["A"] == 0x9a
+    pointer = 0x60EDB
+    seed = "{0:0>10}".format(seed)
+    flags = "{0: >4}".format(flags)
+    assert len(seed) == 10
+    assert len(flags) == 4
+    space = [chr(0xFE)]
+    to_write = "".join(
+        (space*2) +
+        [chr(texttable[c]) for c in seed[-5:]] +
+        (space) +
+        [chr(texttable[c]) for c in flags.upper()] +
+        (space*4) +
+        [chr(texttable[c]) for c in "TERRIBLE"] +
+        (space*len("Press any button")) +
+        [chr(texttable[c]) for c in seed[:5]] +
+        (space*2) +
+        [chr(texttable[c]) for c in "SECRET"] +
+        (space*2)
+        )
+    to_write = to_write.replace(chr(texttable[" "]), chr(0xFE))
+    f = open(outfile, "r+b")
+    f.seek(pointer)
+    f.write(to_write)
+    f.close()
 
 
 def bytes_to_text(data):
@@ -356,9 +385,6 @@ if __name__ == "__main__":
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
     clean_and_write(ALL_OBJECTS)
-    for t in TreasureIndexObject.every:
-        print '%x' % t.pointer, t.contents_name
-    for b in BattleRewardObject.every:
-        print "%x" % b.pointer, b.contents_name
+    write_title_screen(get_outfile(), get_seed(), get_flags())
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
     finish_interface()
