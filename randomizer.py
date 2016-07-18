@@ -22,7 +22,7 @@ ITEMNAMESFILE = path.join(tblpath, "itemnames.txt")
 itemnames = [line.strip() for line in open(ITEMNAMESFILE).readlines()]
 CONSUMABLES = [0x10, 0x11, 0x12, 0x13, 0xDD, 0xDE, 0xDF]
 BROKEN_ITEMS = range(0x10) + [0x2c, 0x2d, 0x2e, 0x36, 0x37, 0x38, 0x39, 0x3c]
-BANNED_ITEMS = [0x07]  # Thunder Rock
+BANNED_ITEMS = [0x07, 0x2a]  # Thunder Rock, Jumbo Bomb
 chest_items = None
 
 
@@ -92,7 +92,7 @@ class TreasureIndexObject(TableObject):
 
     @property
     def is_key(self):
-        return self.contents <= 0x10
+        return self.contents < 0x10
 
     @property
     def contents_name(self):
@@ -104,12 +104,24 @@ class TreasureIndexObject(TableObject):
             return additional[self.contents]
         return itemnames[self.contents]
 
+    @classmethod
+    def mutate_all(self):
+        chests = list(self.every)
+        random.shuffle(chests)
+        for o in chests:
+            if hasattr(o, "mutated") and o.mutated:
+                continue
+            o.mutate()
+            o.mutate_bits()
+            o.mutated = True
+
     def mutate(self):
         global chest_items
         if self.is_key or self.contents == 0xDD:
             return
 
-        if self.is_consumable and random.randint(1, 15) != 15:
+        v = random.randint(1, 7)
+        if self.is_consumable and v != 7:
             self.contents = random.choice(self.consumable_options)
             return
 
