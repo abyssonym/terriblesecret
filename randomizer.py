@@ -74,7 +74,7 @@ class TreasureIndexObject(TableObject):
 
     def mutate(self):
         global chest_items
-        if self.is_key:
+        if self.is_key or self.contents == 0xDD:
             return
 
         if self.is_consumable and random.randint(1, 15) != 15:
