@@ -31,8 +31,6 @@ def populate_chest_items():
     random.shuffle(chest_items)
 
 
-populate_chest_items()
-
 texttable = {}
 for line in open(TEXTTABLEFILE):
     a, b = line.strip("\n").split("=")
