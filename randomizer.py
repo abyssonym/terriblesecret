@@ -43,7 +43,8 @@ def write_title_screen(outfile, seed, flags):
     assert texttable["A"] == 0x9a
     pointer = 0x60EDB
     seed = "{0:0>10}".format(seed)
-    flags = "{0: >4}".format(flags)
+    flags = "{0: <4}".format(flags)
+    version = "v{0: <3}".format(VERSION)
     assert len(seed) == 10
     assert len(flags) == 4
     space = [chr(0xFE)]
@@ -52,7 +53,7 @@ def write_title_screen(outfile, seed, flags):
         [chr(texttable[c]) for c in seed[-5:]] +
         (space) +
         [chr(texttable[c]) for c in flags.upper()] +
-        (space*4) +
+        [chr(texttable[c]) for c in version.upper()] +
         [chr(texttable[c]) for c in "TERRIBLE"] +
         (space*len("Press any button")) +
         [chr(texttable[c]) for c in seed[:5]] +
@@ -375,8 +376,8 @@ class BattleRoundsObject(TableObject):
 
 
 if __name__ == "__main__":
-    print ("You are using the FF Mystic Quest randomizer "
-           "version %s." % VERSION)
+    print ('You are using the Final Fantasy Mystic Quest "A Terrible Secret" '
+           'randomizer version %s.' % VERSION)
     ALL_OBJECTS = [g for g in globals().values()
                    if isinstance(g, type) and issubclass(g, TableObject)
                    and g not in [TableObject]]
