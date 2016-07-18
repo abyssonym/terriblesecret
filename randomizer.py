@@ -86,6 +86,10 @@ class TreasureIndexObject(TableObject):
         [0xdf] * 1
         )
 
+    @classproperty
+    def after_order(self):
+        return [BattleRewardObject]
+
     @property
     def is_consumable(self):
         return self.contents in CONSUMABLES
