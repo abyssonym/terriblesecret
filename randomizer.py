@@ -288,6 +288,9 @@ class BattleRewardObject(TableObject):
         assert not self.reward & 0x3C00
 
     def mutate(self):
+        if self.is_item and self.value == 0x14:
+            # Exit battlefield is fixed
+            return
         self.reward = 0
         rewardtype = random.choice(["xp", "item", "item", "gp"])
         if rewardtype == "item":
