@@ -1,0 +1,64 @@
+Elixir
+Tree Wither
+Wakewater
+Venus Key
+Multi-Key
+Mask
+Magic Mirror
+Thunder Rock
+Captain Cap
+Libra Crest
+Gemini Crest
+Mobius Crest
+Sand Coin
+River Coin
+Sun Coin
+Sky Coin
+Cure Potion
+Heal Potion
+Seed
+Refresher
+Exit
+Cure
+Heal
+Life
+Quake
+Blizzard
+Fire
+Aero
+Thunder
+White
+Meteor
+Flare
+Steel Sword
+Knight Sword
+Excalibur
+Axe
+Battle Axe
+Giant's Axe
+Cat Claw
+Charm Claw
+Dragon Claw
+Bomb
+Jumbo Bomb
+Mega Grenade
+Morning Star
+Bow of Grace
+Ninja Star
+Steel Helm
+Moon Helm
+Apollo Helm
+Steel Armor
+Noble Armor
+Gaia's Armor
+Relica Armor
+Mystic Robe
+Flame Armor
+Black Robe
+Steel Shield
+Venus Shield
+Aegis Shield
+Ether Shield
+Charm
+Magic Ring
+Cupid Locket

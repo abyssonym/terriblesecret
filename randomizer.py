@@ -5,14 +5,35 @@ from randomtools.utils import (
 from randomtools.interface import (
     get_outfile, run_interface, rewrite_snes_meta,
     clean_and_write, finish_interface)
+from os import path
 
 
 RANDOMIZE = True
 VERSION = 1
 ALL_OBJECTS = None
 
+try:
+    from sys import _MEIPASS
+    tblpath = path.join(_MEIPASS, "tables")
+except ImportError:
+    tblpath = "tables"
+TEXTTABLEFILE = path.join(tblpath, "mq.tbl")
+ITEMNAMESFILE = path.join(tblpath, "itemnames.txt")
+itemnames = [line.strip() for line in open(ITEMNAMESFILE).readlines()]
+CONSUMABLES = [0x10, 0x11, 0x12, 0x13, 0xDD, 0xDE, 0xDF]
+BROKEN_ITEMS = range(0x10) + [0x2c, 0x2d, 0x2e, 0x36, 0x37, 0x38, 0x39, 0x3c]
+chest_items = None
+
+
+def populate_chest_items():
+    global chest_items
+    chest_items = [i for i in range(len(itemnames)) if i not in CONSUMABLES]
+    random.shuffle(chest_items)
+
+
+populate_chest_items()
+
 texttable = {}
-TEXTTABLEFILE = "mq.tbl"
 for line in open(TEXTTABLEFILE):
     a, b = line.strip("\n").split("=")
     a = int(a, 0x10)
@@ -23,7 +44,54 @@ def bytes_to_text(data):
     return "".join([texttable[d] if d in texttable else "~" for d in data])
 
 
-class TreasureIndexObject(TableObject): pass
+class TreasureIndexObject(TableObject):
+    flag = "t"
+    consumable_options = (
+        [0x10] * 69 +
+        [0x11] * 57 +
+        [0x12] * 3 +
+        [0x13] * 19 +
+        [0xdd] * 19 +
+        [0xde] * 55 +
+        [0xdf] * 1
+        )
+
+    @property
+    def is_consumable(self):
+        return self.contents in CONSUMABLES
+
+    @property
+    def is_key(self):
+        return self.contents <= 0x10
+
+    @property
+    def contents_name(self):
+        additional = {0xDD: "Explosive",
+                      0xDE: "Arrow",
+                      0xDF: "Ninja Star",
+                      }
+        if self.contents in additional:
+            return additional[self.contents]
+        return itemnames[self.contents]
+
+    def mutate(self):
+        global chest_items
+        if self.is_key:
+            return
+
+        if self.is_consumable and random.randint(1, 15) != 15:
+            self.contents = random.choice(self.consumable_options)
+            return
+
+        while True:
+            if not chest_items:
+                populate_chest_items()
+            value = chest_items.pop()
+            if value in BROKEN_ITEMS and random.randint(1, 10) != 10:
+                chest_items = [value] + chest_items
+                continue
+            break
+        self.contents = value
 
 
 class CombatObject(object):
@@ -34,7 +102,16 @@ class CombatObject(object):
         self.status = shuffle_bits(self.status)
 
 
-class WeaponObject(CombatObject, TableObject):
+class ItemNameMixin(object):
+    first_name_index = 0
+
+    @property
+    def name(self):
+        return itemnames[self.index + self.first_name_index]
+
+
+class WeaponObject(CombatObject, ItemNameMixin, TableObject):
+    first_name_index = 32
     flag = "c"
     intershuffle_attributes = ["statboost", "status"]
 
@@ -53,7 +130,8 @@ class AttackObject(CombatObject, TableObject):
     flag = "m"
 
 
-class ArmorObject(CombatObject, TableObject):
+class ArmorObject(CombatObject, ItemNameMixin, TableObject):
+    first_name_index = 47
     flag = "c"
     intershuffle_attributes = ["statboost", "element", "status"]
 
@@ -152,10 +230,6 @@ class MonsterObject(TableObject):
             self.counter |= newcounter
 
 
-class TreasureObject(TableObject):
-    flag = "t"
-
-
 class BattleRewardObject(TableObject):
     flag = "t"
 
@@ -175,16 +249,24 @@ class BattleRewardObject(TableObject):
     def value(self):
         return self.reward & 0x3FF
 
+    @property
+    def contents_name(self):
+        if not self.is_item:
+            return "NONE"
+        return itemnames[self.reward & 0xFF]
+
     def cleanup(self):
         assert not (self.is_xp and self.is_item)
         assert not self.reward & 0x3C00
 
     def mutate(self):
         self.reward = 0
-        rewardtype = random.choice(["xp", "item", "gp"])
+        rewardtype = random.choice(["xp", "item", "item", "gp"])
         if rewardtype == "item":
             self.reward |= 0x4000
-            self.reward |= random.randint(1, 0x4D)
+            if not chest_items:
+                populate_chest_items()
+            self.reward |= chest_items.pop()
         else:
             if rewardtype == "xp":
                 self.reward |= 0x8000
@@ -276,9 +358,9 @@ if __name__ == "__main__":
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
     clean_and_write(ALL_OBJECTS)
-    #for c in CharacterObject.every:
-    #    print c.name, "%x" % c.known_magic, c.white, c.black, "%x" % c.known_wizard, c.wizard
-    #for b in BattleRewardObject.every:
-    #    print b.index, b.is_xp, b.is_gp, hexify(b.value), b.reward & 0x3c00
+    for t in TreasureIndexObject.every:
+        print '%x' % t.pointer, t.contents_name
+    for b in BattleRewardObject.every:
+        print "%x" % b.pointer, b.contents_name
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
     finish_interface()
