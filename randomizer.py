@@ -373,9 +373,6 @@ class CharacterObject(TableObject):
         assert self.max_hp >= 40
         assert not self.max_hp % 40
         self.current_hp = self.max_hp
-        for attr in ["attack", "defense", "speed", "magic",
-                     "white", "black", "wizard"]:
-            setattr(self, "%s2" % attr, getattr(self, attr))
         if ((self.known_white and self.black and
                 not self.white and not self.known_black) or
                 (self.known_black and self.white and
@@ -390,6 +387,9 @@ class CharacterObject(TableObject):
                 setattr(self, attr, max(getattr(self, attr), avg))
             else:
                 setattr(self, attr, 0)
+        for attr in ["attack", "defense", "speed", "magic",
+                     "white", "black", "wizard"]:
+            setattr(self, "%s2" % attr, getattr(self, attr))
 
 
 class BattleRoundsObject(TableObject):
