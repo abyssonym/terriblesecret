@@ -255,6 +255,9 @@ class MonsterObject(TableObject):
         return self.drop.gp * 3
 
     def mutate(self):
+        if self.index == 0x42:
+            # Behemoth
+            return
         oldstats = {}
         for key in self.mutate_attributes:
             oldstats[key] = getattr(self, key)
