@@ -215,12 +215,24 @@ class MonsterObject(TableObject):
                          "magic": None,
                          }
     intershuffle_attributes = [
-        "resistances", "weaknesses",
+        "resistances", "weaknesses", "immunities",
+        "hp", "strength", "defense", "speed", "magic",
         ]
 
     @property
+    def rank(self):
+        values = [getattr(self, attr) for attr in
+                  ["hp", "defense", "speed"]]
+        values = [v for v in values if v]
+        values += [max(self.strength, self.magic)]
+        rank = 1
+        for v in values:
+            rank *= v
+        return rank
+
+    @property
     def intershuffle_valid(self):
-        return False
+        return not self.is_boss
 
     @property
     def is_boss(self):
