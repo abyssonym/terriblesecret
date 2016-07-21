@@ -22,7 +22,7 @@ ITEMNAMESFILE = path.join(tblpath, "itemnames.txt")
 itemnames = [line.strip() for line in open(ITEMNAMESFILE).readlines()]
 CONSUMABLES = [0x10, 0x11, 0x12, 0x13, 0xDD, 0xDE, 0xDF]
 BROKEN_ITEMS = range(0x10) + [0x2c, 0x2d, 0x2e, 0x36, 0x37, 0x38, 0x39, 0x3c]
-BANNED_ITEMS = [0x07, 0x2a]  # Thunder Rock, Jumbo Bomb
+BANNED_ITEMS = [0x07, 0x08, 0x2a]  # Thunder Rock, Captain Cap, Jumbo Bomb
 chest_items = None
 
 
