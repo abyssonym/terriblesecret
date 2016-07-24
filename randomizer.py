@@ -232,6 +232,8 @@ class MonsterObject(TableObject):
 
     @property
     def intershuffle_valid(self):
+        if self.hp < 200:
+            return False
         return not self.is_boss
 
     @property
