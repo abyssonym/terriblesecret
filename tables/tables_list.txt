@@ -5,7 +5,10 @@ AttackObject        attack_table.txt            13c78   156
 ArmorObject         armor_table.txt             14127   17
 DropObject          drop_table.txt              1417D   81
 MonsterObject       monster_table.txt           14275   81
+ExitObject          exit_table.txt              2f4a0   339
+EventObject         event_table.txt             2f920   107     pointed 2f9f8   2
 BattleRewardObject  rewards_table.txt           3efa1   20
+WorldMapObject      world_table.txt             3efc9   36
 MonsterNameObject   monster_name_table.txt      64ba0   81
 CharacterObject     char_table.txt              650b0   9
 BattleRoundsObject  rounds_table.txt            654d0   20

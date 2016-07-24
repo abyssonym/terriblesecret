@@ -19,7 +19,9 @@ except ImportError:
     tblpath = "tables"
 TEXTTABLEFILE = path.join(tblpath, "mq.tbl")
 ITEMNAMESFILE = path.join(tblpath, "itemnames.txt")
+LOCNAMESFILE = path.join(tblpath, "locnames.txt")
 itemnames = [line.strip() for line in open(ITEMNAMESFILE).readlines()]
+locnames = [line.strip() for line in open(LOCNAMESFILE).readlines()]
 CONSUMABLES = [0x10, 0x11, 0x12, 0x13, 0xDD, 0xDE, 0xDF]
 BROKEN_ITEMS = range(0x10) + [0x2c, 0x2d, 0x2e, 0x36, 0x37, 0x38, 0x39, 0x3c]
 # Thunder Rock, Captain Cap, All bombs
@@ -415,6 +417,91 @@ class BattleRoundsObject(TableObject):
     mutate_attributes = {"num_rounds": (0, 0xFF)}
 
 
+class ExitObject(TableObject):
+    intershuffle_attributes = [("x", "y", "map"),]
+
+    def __repr__(self):
+        return "%s %x %s %s %s" % (self.index, self.map, self.locname,
+                                   self.rx, self.ry)
+
+    @property
+    def rx(self):
+        return self.x & 0x7F
+
+    @property
+    def ry(self):
+        return self.y & 0x7F
+
+    @property
+    def intershuffle_valid(self):
+        return False
+
+    @property
+    def locname(self):
+        return locnames[self.map]
+
+    @property
+    def destination_events(self):
+        candidates = set([e for e in EventObject.every
+                          if e.groupindex == self.map
+                          and abs(self.rx - e.x) + abs(self.ry - e.y) <= 1])
+        prevlength = 0
+        while len(candidates) != prevlength:
+            prevlength = len(candidates)
+            for e1 in list(candidates):
+                candidates |= set([e2 for e2 in EventObject.every
+                    if e1.groupindex == e2.groupindex
+                    and abs(e1.x - e2.x) + abs(e1.y - e2.y) <= 1])
+        return sorted(candidates, key=lambda c: c.index)
+
+    '''
+    @classmethod
+    def intershuffle(self):
+        remaining = list(self.every)
+        remaining = [r for r in remaining if 6 <= r.map <= 0x6B]
+        random.shuffle(remaining)
+        root = remaining.pop()
+        linkdict = {}
+        prev = root
+        while remaining:
+            assert prev not in linkdict
+            nextlink = remaining.pop()
+            linkdict[prev] = (nextlink.x, nextlink.y, nextlink.map)
+            prev = nextlink
+        assert prev not in linkdict
+        linkdict[prev] = (root.x, root.y, root.map)
+        for (a, (x, y, lmap)) in linkdict.items():
+            a.x = x
+            a.y = y
+            a.map = lmap
+    '''
+
+
+class EventObject(TableObject):
+    def __repr__(self):
+        return "%s %x %s %s %s" % (self.index, self.groupindex, self.locname, self.x, self.y)
+
+    @property
+    def locname(self):
+        return locnames[self.groupindex]
+
+    @property
+    def exits(self):
+        candidates = [x for x in ExitObject.every
+                      if self.groupindex == x.map
+                      and self in x.destination_events]
+        return candidates
+
+
+class WorldMapObject(TableObject):
+    @property
+    def entrance(self):
+        pointer = (self.entry_index * 3) + 0x2f79a
+        chosen = [e for e in ExitObject.every if e.pointer == pointer]
+        assert len(chosen) == 1
+        return chosen[0]
+
+
 if __name__ == "__main__":
     print ('You are using the Final Fantasy Mystic Quest "A Terrible Secret" '
            'randomizer version %s.' % VERSION)
@@ -425,6 +512,14 @@ if __name__ == "__main__":
     hexify = lambda x: "{0:0>2}".format("%x" % x)
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
+    #for e in sorted(ExitObject.every, key=lambda x: len(x.destination_events)):
+    #    print e, len(e.destination_events)
+    for e in ExitObject.every:
+        print "%x" % e.pointer, e, len(e.destination_events)
+    #for e in EventObject.every:
+    #    print e, e.exits
+    for w in sorted(WorldMapObject.every, key=lambda w2: w2.entrance.index):
+        print w.entrance
     clean_and_write(ALL_OBJECTS)
     write_title_screen(get_outfile(), get_seed(), get_flags())
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
