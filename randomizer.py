@@ -418,7 +418,10 @@ class BattleRoundsObject(TableObject):
 
 
 class ExitObject(TableObject):
+    flag = "x"
+    flag_description = "exits"
     intershuffle_attributes = [("x", "y", "map"),]
+    world_map = []
 
     def __repr__(self):
         return "%s %x %s %s %s" % (self.index, self.map, self.locname,
@@ -433,8 +436,50 @@ class ExitObject(TableObject):
         return self.y & 0x7F
 
     @property
-    def intershuffle_valid(self):
+    def is_overworld(self):
+        if self.map == 0:
+            return True
+        if not self.world_map:
+            self.world_map = [w.entrance for w in WorldMapObject.every]
+        if self in self.world_map:
+            return True
         return False
+
+    @property
+    def intershuffle_valid(self):
+        BANNED = [
+                (0x0C, 0x08, 0x1a),
+                (0x5E, 0x2B, 0x24),
+                (0x2D, 0x1D, 0x1C),
+                (0x2F, 0x0C, 0x13),
+                (0x1B, 0x2D, 0x27),
+                (0x34, 0x0E, 0x07),
+                (0x61, 0x10, 0x29),
+                (0x5D, 0x2B, 0x24),
+                (0x31, 0x28, 0x39),
+                (0x09, 0x10, 0x19),
+                (0x43, 0x2A, 0x2B),
+                (0x47, 0x34, 0x19),
+                (0x52, 0x1E, 0x36),
+                (0x43, 0x18, 0x0a),
+                (0x11, 0x0E, 0x21),
+                (0x34, 0x0E, 0x07),
+                # end of the game
+                (0x65, 0x3B, 0x0D),
+                (0x6A, 0x0F, 0x0E),
+                (0x6A, 0x0F, 0x18),
+                (0x6B, 0x0E, 0x1A),
+            ]
+        RESTRICTED = [
+                (0x49, 0x14, 0x19),
+                (0x34, 0x0C, 0x11),
+            ]
+        if (self.map, self.rx, self.ry) in BANNED:
+            return False
+        if (self.map, self.rx, self.ry) in RESTRICTED:
+            self.y += 1
+            return True
+        return not self.is_overworld
 
     @property
     def locname(self):
@@ -454,28 +499,6 @@ class ExitObject(TableObject):
                     and abs(e1.x - e2.x) + abs(e1.y - e2.y) <= 1])
         return sorted(candidates, key=lambda c: c.index)
 
-    '''
-    @classmethod
-    def intershuffle(self):
-        remaining = list(self.every)
-        remaining = [r for r in remaining if 6 <= r.map <= 0x6B]
-        random.shuffle(remaining)
-        root = remaining.pop()
-        linkdict = {}
-        prev = root
-        while remaining:
-            assert prev not in linkdict
-            nextlink = remaining.pop()
-            linkdict[prev] = (nextlink.x, nextlink.y, nextlink.map)
-            prev = nextlink
-        assert prev not in linkdict
-        linkdict[prev] = (root.x, root.y, root.map)
-        for (a, (x, y, lmap)) in linkdict.items():
-            a.x = x
-            a.y = y
-            a.map = lmap
-    '''
-
 
 class EventObject(TableObject):
     def __repr__(self):
@@ -491,6 +514,10 @@ class EventObject(TableObject):
                       if self.groupindex == x.map
                       and self in x.destination_events]
         return candidates
+
+    @classmethod
+    def write_all(self, filename):
+        return
 
 
 class WorldMapObject(TableObject):
@@ -514,12 +541,14 @@ if __name__ == "__main__":
     minmax = lambda x: (min(x), max(x))
     #for e in sorted(ExitObject.every, key=lambda x: len(x.destination_events)):
     #    print e, len(e.destination_events)
-    for e in ExitObject.every:
-        print "%x" % e.pointer, e, len(e.destination_events)
+    #for e in ExitObject.every:
+    #    print "%x" % e.pointer, e, len(e.destination_events)
     #for e in EventObject.every:
     #    print e, e.exits
-    for w in sorted(WorldMapObject.every, key=lambda w2: w2.entrance.index):
-        print w.entrance
+    #for w in sorted(WorldMapObject.every, key=lambda w2: w2.entrance.index):
+    #    print w.entrance
+    for e in ExitObject.every:
+        print "%x %x %x %x" % (e.index, e.map, e.rx, e.ry)
     clean_and_write(ALL_OBJECTS)
     write_title_screen(get_outfile(), get_seed(), get_flags())
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
