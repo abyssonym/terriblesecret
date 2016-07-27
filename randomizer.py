@@ -457,13 +457,17 @@ class ExitObject(TableObject):
                 (0x61, 0x10, 0x29),
                 (0x5D, 0x2B, 0x24),
                 (0x31, 0x28, 0x39),
-                (0x09, 0x10, 0x19),
+                (0x09, 0x10, 0x18),
                 (0x43, 0x2A, 0x2B),
                 (0x47, 0x34, 0x19),
                 (0x52, 0x1E, 0x36),
                 (0x43, 0x18, 0x0a),
                 (0x11, 0x0E, 0x21),
                 (0x34, 0x0E, 0x07),
+                (0x19, 0x39, 0x18),
+                (0x06, 0x0F, 0x12),
+                (0x1B, 0x0D, 0x24),
+                (0x40, 0x0E, 0x24),
                 # end of the game
                 (0x65, 0x3B, 0x0D),
                 (0x6A, 0x0F, 0x0E),
@@ -472,7 +476,8 @@ class ExitObject(TableObject):
             ]
         RESTRICTED = [
                 (0x49, 0x14, 0x19),
-                (0x34, 0x0C, 0x11),
+                #(0x34, 0x0C, 0x11),
+                (0x49, 0x0C, 0x11),
             ]
         if (self.map, self.rx, self.ry) in BANNED:
             return False
@@ -549,6 +554,8 @@ if __name__ == "__main__":
     #    print w.entrance
     for e in ExitObject.every:
         print "%x %x %x %x" % (e.index, e.map, e.rx, e.ry)
+    for e in EventObject.every:
+        print "%x" % e.index, "%x" % e.unk, e.exits
     clean_and_write(ALL_OBJECTS)
     write_title_screen(get_outfile(), get_seed(), get_flags())
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
