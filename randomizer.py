@@ -129,6 +129,10 @@ class TreasureIndexObject(TableObject):
         if self.is_key:
             return
 
+        if self.index == 5:
+            # focus tower bomb chest
+            return
+
         any_left = self.desirable_left + self.undesirable_left
         value = None
         if self.is_consumable and (not any_left or random.randint(1, 7) != 7):
