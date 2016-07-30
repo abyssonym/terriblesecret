@@ -238,7 +238,7 @@ class MonsterObject(TableObject):
 
     @property
     def is_boss(self):
-        return self.index >= 0x3A
+        return self.index >= 0x40
 
     @property
     def name(self):
@@ -425,6 +425,11 @@ class BattleRoundsObject(TableObject):
 
 
 class FormationObject(TableObject):
+    flag = "f"
+    flag_description = "formations"
+    done_bosses = set([])
+    banned_bosses = [0x4c, 0x4d, 0x4e, 0x4f, 0x50]
+
     def read_data(self, *args, **kwargs):
         super(FormationObject, self).read_data(*args, **kwargs)
         if self.pointer >= BattleFormationObject.get(0).pointer:
@@ -461,14 +466,80 @@ class FormationObject(TableObject):
     def rank(self):
         if self.is_broken or not self.enemies:
             return -1
-        return max([e.rank for e in self.enemies])
+        ranks = sorted([e.rank for e in self.enemies], reverse=True)
+        total = 0
+        for m, r in zip([1, 0.5, 0.25], ranks):
+            total += m * r
+        return int(total)
 
     @classmethod
     def get_unused(self):
         return [f for f in self.every if not f.enemies].pop()
 
+    def mutate(self):
+        old_ids = list(self.enemy_ids)
+        if self.is_boss:
+            boss = self.leader
+            boss_index = boss.index
+            if boss_index == 0x50:
+                return
+            new = []
+            for e in self.enemy_ids:
+                if e == boss_index:
+                    continue
+                if e == 0xFF and random.choice([True, False]):
+                    continue
+                if e == 0xFF:
+                    lower = 0
+                else:
+                    lower = MonsterObject.get(e).rank
+                upper = self.leader.rank
+                candidates = [m for m in MonsterObject.ranked
+                              if lower <= m.rank < upper
+                              and m.index not in self.banned_bosses]
+                if not candidates:
+                    import pdb; pdb.set_trace()
+                index = random.randint(0, len(candidates)-1)
+                index = random.randint(0, index)
+                new.append(candidates[index].index)
+            if len(new) == 2:
+                new = [new[0], boss_index, new[1]]
+            else:
+                new = [boss_index] + new
+            while len(new) < 3:
+                new += [0xFF]
+            self.enemy_ids = new
+            return
+
+        if len(self.enemies) <= 1:
+            return
+
+        for i, e in enumerate(self.enemies):
+            if i == len(self.enemies)-2:
+                continue
+            new = e.get_similar()
+            if new.index in self.banned_bosses:
+                continue
+            if new in self.done_bosses and random.randint(1, 10) != 10:
+                continue
+            self.enemy_ids[i] = new.index
+            if new.is_boss:
+                self.done_bosses.add(new)
+
+        new_tuple = sorted(tuple(self.enemy_ids))
+        if new_tuple == sorted(tuple(old_ids)):
+            return
+        for f in FormationObject.every:
+            if f.index == self.index:
+                continue
+            if sorted(tuple(f.enemy_ids)) == new_tuple:
+                self.enemy_ids = old_ids
+                break
+
 
 class BattleFormationObject(TableObject):
+    flag = "f"
+
     def __repr__(self):
         return "%x %s %s\n%s" % (
             self.index, BattleRoundsObject.get(self.index).num_rounds,
@@ -519,10 +590,10 @@ if __name__ == "__main__":
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
     for m in MonsterObject.every:
-        print "%x" % m.index, m.name
-    for f in FormationObject.ranked:
+        print "%x" % m.index, m.rank, m.name.strip(), m.hp, m.is_boss
+    for f in FormationObject.every:
         print f.rank, f
-    for bf in BattleFormationObject.ranked:
+    for bf in BattleFormationObject.every:
         print bf
         print
     bf = BattleFormationObject.get(0)
