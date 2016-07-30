@@ -429,6 +429,11 @@ class FormationObject(TableObject):
     flag_description = "formations"
     done_bosses = set([])
     banned_bosses = [0x4c, 0x4d, 0x4e, 0x4f, 0x50]
+    unused = []
+
+    @classproperty
+    def after_order(self):
+        return [BattleFormationObject]
 
     def read_data(self, *args, **kwargs):
         super(FormationObject, self).read_data(*args, **kwargs)
@@ -457,7 +462,9 @@ class FormationObject(TableObject):
 
     @property
     def leader(self):
-        if len(self.enemies) == 3:
+        if not self.enemies:
+            return None
+        if len(self.enemies) >= 2:
             return MonsterObject.get(self.enemy_ids[1] & 0x7F)
         else:
             return self.enemies[0]
@@ -473,10 +480,25 @@ class FormationObject(TableObject):
         return int(total)
 
     @classmethod
+    def find_unused(self):
+        used = set([])
+        for bf in BattleFormationObject.every:
+            used |= set(bf.formation_ids)
+        self.unused = [f for f in FormationObject.every
+                       if f.index not in used]
+        for f in self.unused:
+            f.enemy_ids = [0xFF] * 3
+            f.unknown = 0
+
+    @classmethod
     def get_unused(self):
-        return [f for f in self.every if not f.enemies].pop()
+        if not self.unused:
+            self.find_unused()
+        return self.unused.pop()
 
     def mutate(self):
+        if not self.unused:
+            self.find_unused()
         old_ids = list(self.enemy_ids)
         if self.is_boss:
             boss = self.leader
@@ -541,9 +563,13 @@ class BattleFormationObject(TableObject):
     flag = "f"
 
     def __repr__(self):
+        if self.index < 20:
+            rounds, reward = (BattleRoundsObject.get(self.index).num_rounds,
+                              BattleRewardObject.get(self.index).contents_description)
+        else:
+            rounds, reward = "N/A", "N/A"
         return "%x %s %s\n%s" % (
-            self.index, BattleRoundsObject.get(self.index).num_rounds,
-            BattleRewardObject.get(self.index).contents_description,
+            self.index, rounds, reward,
             "\n".join([str(f) for f in self.formations]))
 
     @property
@@ -554,29 +580,47 @@ class BattleFormationObject(TableObject):
     def rank(self):
         return max(f.rank for f in self.formations)
 
+    @property
+    def is_boss(self):
+        return len(set(self.formation_ids)) == 1 and self.formations[0].is_boss
+
     def mutate(self):
         if self.index == 0:
             f = FormationObject.get_unused()
             f.enemy_ids = [0x42, 0x42, 0xFF]
             f.unknown = 0
+            f.mutated = True
             new_ids = [f.index] * 3
+            self.formation_ids = new_ids
+            return
+
+        if self.is_boss:
+            return
+
+        if self.index >= 20:
+            leaders = [f.leader for f in self.formations]
+            assert len(set(leaders)) == 1
+            leader = leaders[0]
+            candidates = [f for f in FormationObject.every if f.leader == leader]
         else:
-            new_ids = [f.get_similar().index for f in self.formations]
+            candidates = None
+
+        new_ids = [f.get_similar(candidates).index for f in self.formations]
+        if len(set(new_ids)) < len(set(self.formation_ids)):
+            return
         self.formation_ids = new_ids
 
-    def write_data(self, filename):
-        NEW_LOCATION = 0x17ee0
-        pointer = NEW_LOCATION + (3 * self.index)
-        super(BattleFormationObject, self).write_data(pointer=pointer, filename=filename)
-
-
-def move_battlefield_data(outfile):
-    RETRIEVE_LOCATION = 0x10c64
-    f = open(outfile, "r+b")
-    f.seek(RETRIEVE_LOCATION)
-    f.write(chr(0xe0))
-    f.write(chr(0xfe))
-    f.close()
+    @classmethod
+    def mutate_all(cls):
+        battlefields = [cls.get(i) for i in range(20)]
+        everything_else = [c for c in cls.every if c not in battlefields]
+        random.shuffle(battlefields)
+        random.shuffle(everything_else)
+        for o in everything_else + battlefields:
+            if hasattr(o, "mutated") and o.mutated:
+                continue
+            o.mutate()
+            o.mutated = True
 
 
 if __name__ == "__main__":
@@ -589,20 +633,14 @@ if __name__ == "__main__":
     hexify = lambda x: "{0:0>2}".format("%x" % x)
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
-    for m in MonsterObject.every:
-        print "%x" % m.index, m.rank, m.name.strip(), m.hp, m.is_boss
-    for f in FormationObject.every:
-        print f.rank, f
+    #for m in MonsterObject.every:
+    #    print "%x" % m.index, m.rank, m.name.strip(), m.hp, m.is_boss
+    #for f in FormationObject.every:
+    #    print f
     for bf in BattleFormationObject.every:
         print bf
         print
-    bf = BattleFormationObject.get(0)
-    print bf.formations
-    #bf.formation_ids = [0xe8] * 3
-    #f = FormationObject.get(0x57)
-    #f.enemy_ids = [0xa4, 0xFF, 0xFF]
     clean_and_write(ALL_OBJECTS)
-    move_battlefield_data(get_outfile())
     write_title_screen(get_outfile(), get_seed(), get_flags())
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
     finish_interface()

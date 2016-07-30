@@ -5,8 +5,8 @@ AttackObject        attack_table.txt            13c78   156
 ArmorObject         armor_table.txt             14127   17
 DropObject          drop_table.txt              1417D   81
 MonsterObject       monster_table.txt           14275   81
-FormationObject     formation_table.txt         14a6a   255
-BattleFormationObject   battle_formation_table.txt  14e12   20
+FormationObject     formation_table.txt         14a6a   234
+BattleFormationObject   battle_formation_table.txt  14e12   207
 ExitObject          exit_table.txt              2f4a0   339
 EventObject         event_table.txt             2f920   107     pointed 2f9f8   2
 BattleRewardObject  rewards_table.txt           3efa1   20
