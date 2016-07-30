@@ -288,6 +288,8 @@ class MonsterObject(TableObject):
                 value |= flag
             setattr(self, attr, value)
         self.resistances = self.resistances & 0xF0
+        if self.hp < 200 or self.index in [0x43, 0x4a]:
+            return
         if random.randint(1, 4) == 4:
             self.counter &= 0x0F
             newcounter = random.choice([0, 0, 0x10, 0x20, 0x40, 0x80, 0x80])
