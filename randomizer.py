@@ -116,6 +116,8 @@ class TreasureIndexObject(TableObject):
     def mutate_all(self):
         chests = list(self.every)
         random.shuffle(chests)
+        random.shuffle(self.desirable_left)
+        random.shuffle(self.undesirable_left)
         for o in chests:
             if hasattr(o, "mutated") and o.mutated:
                 continue
@@ -128,8 +130,6 @@ class TreasureIndexObject(TableObject):
             return
 
         any_left = self.desirable_left + self.undesirable_left
-        random.shuffle(self.desirable_left)
-        random.shuffle(self.undesirable_left)
         value = None
         if self.is_consumable and (not any_left or random.randint(1, 7) != 7):
             self.contents = random.choice(self.consumable_options)
