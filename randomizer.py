@@ -729,6 +729,10 @@ if __name__ == "__main__":
                    if isinstance(g, type) and issubclass(g, TableObject)
                    and g not in [TableObject]]
     run_interface(ALL_OBJECTS, snes=True)
+    DemoPlay = CharacterObject.get(0)
+    DemoPlay.name_text = [texttable[c] for c in "Abyssnym"]
+    while len(DemoPlay.name_text) < 16:
+        DemoPlay.name_text += [0x03]
     hexify = lambda x: "{0:0>2}".format("%x" % x)
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
