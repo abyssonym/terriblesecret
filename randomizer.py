@@ -734,20 +734,24 @@ class BattleFormationObject(TableObject):
 
 
 if __name__ == "__main__":
-    print ('You are using the Final Fantasy Mystic Quest "A Terrible Secret" '
-           'randomizer version %s.' % VERSION)
-    ALL_OBJECTS = [g for g in globals().values()
-                   if isinstance(g, type) and issubclass(g, TableObject)
-                   and g not in [TableObject]]
-    run_interface(ALL_OBJECTS, snes=True)
-    DemoPlay = CharacterObject.get(0)
-    DemoPlay.name_text = [texttable[c] for c in "Abyssnym"]
-    while len(DemoPlay.name_text) < 16:
-        DemoPlay.name_text += [0x03]
-    hexify = lambda x: "{0:0>2}".format("%x" % x)
-    numify = lambda x: "{0: >3}".format(x)
-    minmax = lambda x: (min(x), max(x))
-    clean_and_write(ALL_OBJECTS)
-    write_title_screen(get_outfile(), get_seed(), get_flags())
-    rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
-    finish_interface()
+    try:
+        print ('You are using the Final Fantasy Mystic Quest "A Terrible Secret" '
+               'randomizer version %s.' % VERSION)
+        ALL_OBJECTS = [g for g in globals().values()
+                       if isinstance(g, type) and issubclass(g, TableObject)
+                       and g not in [TableObject]]
+        run_interface(ALL_OBJECTS, snes=True)
+        DemoPlay = CharacterObject.get(0)
+        DemoPlay.name_text = [texttable[c] for c in "Abyssnym"]
+        while len(DemoPlay.name_text) < 16:
+            DemoPlay.name_text += [0x03]
+        hexify = lambda x: "{0:0>2}".format("%x" % x)
+        numify = lambda x: "{0: >3}".format(x)
+        minmax = lambda x: (min(x), max(x))
+        clean_and_write(ALL_OBJECTS)
+        write_title_screen(get_outfile(), get_seed(), get_flags())
+        rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
+        finish_interface()
+    except Exception, e:
+        print "ERROR: %s" % e
+        raw_input("Press Enter to close this program.")
