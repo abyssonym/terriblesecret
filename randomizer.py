@@ -21,17 +21,18 @@ TEXTTABLEFILE = path.join(tblpath, "mq.tbl")
 ITEMNAMESFILE = path.join(tblpath, "itemnames.txt")
 itemnames = [line.strip() for line in open(ITEMNAMESFILE).readlines()]
 CONSUMABLES = [0x10, 0x11, 0x12, 0x13, 0xDD, 0xDE, 0xDF]
-BROKEN_ITEMS = range(0x10) + [0x2c, 0x2d, 0x2e, 0x36, 0x37, 0x38, 0x39, 0x3c]
-# Thunder Rock, Captain Cap, All bombs
-BANNED_ITEMS = [0x07, 0x08, 0x29, 0x2a, 0x2b]
+BANNED_ITEMS = [0x07, 0x08, 0x29, 0x2a, 0x2b]  # Rock, Cap, All bombs
+BROKEN_ITEMS = [i for i in range(0x10) +
+    [0x2c, 0x2d, 0x2e, 0x36, 0x37, 0x38, 0x39, 0x3c] if i not in BANNED_ITEMS]
+UNDESIRABLE_ITEMS = [0x20, 0x23, 0x26, 0x2c, 0x2d, 0x2e,
+                     0x32, 0x35, 0x36, 0x37, 0x38, 0x3c]
+UNDESIRABLE_ITEMS = sorted(set(UNDESIRABLE_ITEMS + BROKEN_ITEMS))
+DESIRABLE_ITEMS = [i for i in range(0x10, 0x40) if i == 0x12 or i not in
+   CONSUMABLES + UNDESIRABLE_ITEMS + BROKEN_ITEMS + BANNED_ITEMS]
+assert not set(BANNED_ITEMS) & set(
+    DESIRABLE_ITEMS + UNDESIRABLE_ITEMS + BROKEN_ITEMS + CONSUMABLES)
+assert not set(DESIRABLE_ITEMS) & set(UNDESIRABLE_ITEMS)
 chest_items = None
-
-
-def populate_chest_items():
-    global chest_items
-    chest_items = [i for i in range(len(itemnames))
-                   if i not in CONSUMABLES + BANNED_ITEMS]
-    random.shuffle(chest_items)
 
 
 texttable = {}
@@ -86,10 +87,11 @@ class TreasureIndexObject(TableObject):
         [0xde] * 55 +
         [0xdf] * 1
         )
+    desirable_left = list(DESIRABLE_ITEMS)
+    undesirable_left = list(UNDESIRABLE_ITEMS)
 
-    @classproperty
-    def after_order(self):
-        return [BattleRewardObject]
+    def __repr__(self):
+        return "%x: %s" % (self.index, self.contents_name)
 
     @property
     def is_consumable(self):
@@ -117,27 +119,34 @@ class TreasureIndexObject(TableObject):
             if hasattr(o, "mutated") and o.mutated:
                 continue
             o.mutate()
-            o.mutate_bits()
             o.mutated = True
 
     def mutate(self):
         global chest_items
-        if self.is_key or self.contents == 0xDD:
+        if self.is_key:
             return
 
-        v = random.randint(1, 7)
-        if self.is_consumable and v != 7:
+        any_left = self.desirable_left + self.undesirable_left
+        random.shuffle(self.desirable_left)
+        random.shuffle(self.undesirable_left)
+        value = None
+        if self.is_consumable and (not any_left or random.randint(1, 7) != 7):
             self.contents = random.choice(self.consumable_options)
             return
+        elif self.is_consumable:
+            if self.undesirable_left and (
+                    not self.desirable_left or random.randint(1, 10) != 10):
+                value = self.undesirable_left.pop()
+            else:
+                value = self.desirable_left.pop()
 
-        while True:
-            if not chest_items:
-                populate_chest_items()
-            value = chest_items.pop()
-            if value in BROKEN_ITEMS and random.randint(1, 10) != 10:
-                chest_items = [value] + chest_items
-                continue
-            break
+        if value is None:
+            if self.desirable_left:
+                value = self.desirable_left.pop()
+            elif self.undesirable_left:
+                value = self.undesirable_left.pop()
+            else:
+                value = 0x12  # seed
         self.contents = value
 
 
@@ -299,6 +308,10 @@ class MonsterObject(TableObject):
 class BattleRewardObject(TableObject):
     flag = "t"
 
+    @classproperty
+    def after_order(self):
+        return [BattleFormationObject, TreasureIndexObject]
+
     @property
     def is_xp(self):
         return bool(self.reward & 0x8000)
@@ -334,17 +347,45 @@ class BattleRewardObject(TableObject):
         assert not (self.is_xp and self.is_item)
         assert not self.reward & 0x3C00
 
+    @classmethod
+    def mutate_all(self):
+        brs = list(self.every)
+        random.shuffle(brs)
+        for o in brs:
+            if hasattr(o, "mutated") and o.mutated:
+                continue
+            o.mutate()
+            o.mutated = True
+
     def mutate(self):
         if self.is_item and self.value == 0x14:
             # Exit battlefield is fixed
             return
+
         self.reward = 0
-        rewardtype = random.choice(["xp", "item", "item", "gp"])
+        if TreasureIndexObject.desirable_left:
+            value = TreasureIndexObject.desirable_left.pop()
+            if value == 0x14 and TreasureIndexObject.desirable_left:
+                value = TreasureIndexObject.desirable_left.pop()
+            if value != 0x14:
+                self.reward |= 0x4000
+                self.reward |= value
+                return
+        if TreasureIndexObject.undesirable_left:
+            remaining = [i for i in TreasureIndexObject.undesirable_left
+                         if i not in BROKEN_ITEMS]
+            if remaining:
+                value = remaining.pop()
+                self.reward |= 0x4000
+                self.reward |= value
+                TreasureIndexObject.undesirable_left.remove(value)
+                return
+
+        rewardtype = random.choice(["xp", "xp", "item", "gp"])
         if rewardtype == "item":
             self.reward |= 0x4000
-            if not chest_items:
-                populate_chest_items()
-            self.reward |= chest_items.pop()
+            self.reward |= random.choice(
+                sorted(set(DESIRABLE_ITEMS + UNDESIRABLE_ITEMS)))
         else:
             if rewardtype == "xp":
                 self.reward |= 0x8000
@@ -424,6 +465,10 @@ class CharacterObject(TableObject):
 class BattleRoundsObject(TableObject):
     flag = "t"
     mutate_attributes = {"num_rounds": (0, 0xFF)}
+
+    @classproperty
+    def after_order(self):
+        return [BattleFormationObject]
 
 
 class FormationObject(TableObject):
@@ -522,7 +567,7 @@ class FormationObject(TableObject):
                               if lower <= m.rank < upper
                               and m.index not in self.banned_bosses]
                 if not candidates:
-                    import pdb; pdb.set_trace()
+                    return
                 index = random.randint(0, len(candidates)-1)
                 index = random.randint(0, index)
                 new.append(candidates[index].index)
@@ -564,6 +609,10 @@ class FormationObject(TableObject):
 class BattleFormationObject(TableObject):
     flag = "f"
 
+    @classproperty
+    def after_order(self):
+        return [TreasureIndexObject]
+
     def __repr__(self):
         if self.index < 20:
             rounds, reward = (BattleRoundsObject.get(self.index).num_rounds,
@@ -594,6 +643,12 @@ class BattleFormationObject(TableObject):
             f.mutated = True
             new_ids = [f.index] * 3
             self.formation_ids = new_ids
+            br = BattleRoundsObject.get(0)
+            br.num_rounds = 1
+            br.mutated = True
+            br2 = BattleRewardObject.get(0)
+            br2.reward = 0x4000 | random.choice(DESIRABLE_ITEMS)
+            br2.mutated = True
             return
 
         if self.is_boss:
@@ -639,9 +694,16 @@ if __name__ == "__main__":
     #    print "%x" % m.index, m.rank, m.name.strip(), m.hp, m.is_boss
     #for f in FormationObject.every:
     #    print f
+    '''
     for bf in BattleFormationObject.every:
         print bf
         print
+    for t in TreasureIndexObject.every:
+        print t
+    print
+    for index in TreasureIndexObject.desirable_left:
+        print itemnames[index]
+    '''
     clean_and_write(ALL_OBJECTS)
     write_title_screen(get_outfile(), get_seed(), get_flags())
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
