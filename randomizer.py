@@ -622,7 +622,7 @@ class FormationObject(TableObject):
 
 
 class BattleFormationObject(TableObject):
-    flag = "f"
+    flag = "t"
 
     @classproperty
     def after_order(self):
