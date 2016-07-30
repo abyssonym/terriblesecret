@@ -368,6 +368,10 @@ class BattleRewardObject(TableObject):
             return
 
         self.reward = 0
+        done_items = [t.reward & 0xFF for t in BattleRewardObject.every
+                      if hasattr(t, "mutated") and t.mutated
+                      and t.reward & 0x4000]
+        assert len(done_items) == len(set(done_items))
         if TreasureIndexObject.desirable_left:
             value = TreasureIndexObject.desirable_left.pop()
             if value == 0x14 and TreasureIndexObject.desirable_left:
@@ -375,7 +379,6 @@ class BattleRewardObject(TableObject):
             if value != 0x14:
                 self.reward |= 0x4000
                 self.reward |= value
-                return
         if TreasureIndexObject.undesirable_left:
             remaining = [i for i in TreasureIndexObject.undesirable_left
                          if i not in BROKEN_ITEMS]
@@ -384,17 +387,21 @@ class BattleRewardObject(TableObject):
                 self.reward |= 0x4000
                 self.reward |= value
                 TreasureIndexObject.undesirable_left.remove(value)
-                return
 
-        rewardtype = random.choice(["xp", "xp", "item", "gp"])
-        if rewardtype == "item":
-            self.reward |= 0x4000
-            self.reward |= random.choice(
-                sorted(set(DESIRABLE_ITEMS + UNDESIRABLE_ITEMS)))
-        else:
-            if rewardtype == "xp":
-                self.reward |= 0x8000
-            self.reward |= random.randint(1, 0x3FF)
+        if self.reward == 0:
+            rewardtype = random.choice(["xp", "xp", "item", "gp"])
+            if rewardtype == "item":
+                self.reward |= 0x4000
+                self.reward |= random.choice(
+                    sorted(set(DESIRABLE_ITEMS + UNDESIRABLE_ITEMS)))
+            else:
+                if rewardtype == "xp":
+                    self.reward |= 0x8000
+                self.reward |= random.randint(1, 0x3FF)
+
+        if self.reward & 0x4000 and (self.reward & 0xFF) in done_items:
+            self.reward = 0
+            return self.mutate()
 
 
 class MonsterNameObject(TableObject):
@@ -701,11 +708,15 @@ class BattleFormationObject(TableObject):
         br.mutated = True
         br2 = BattleRewardObject.get(self.index)
         br2.reward = 0x4000
+        done_items = [t.reward & 0xFF for t in BattleRewardObject.every
+                      if hasattr(t, "mutated") and t.mutated
+                      and t.reward & 0x4000]
         if TreasureIndexObject.well_hidden:
             value = random.choice(sorted(TreasureIndexObject.well_hidden))
             TreasureIndexObject.well_hidden.remove(value)
         else:
-            value = random.choice(DESIRABLE_ITEMS)
+            value = random.choice([i for i in DESIRABLE_ITEMS
+                                   if i != 0x14 and i not in done_items])
         br2.reward |= value
         br2.mutated = True
 
