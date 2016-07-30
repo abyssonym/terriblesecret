@@ -558,6 +558,7 @@ class FormationObject(TableObject):
             if boss_index == 0x50:
                 return
             new = []
+            upper = self.leader.rank
             for e in self.enemy_ids:
                 if e == boss_index:
                     continue
@@ -567,7 +568,6 @@ class FormationObject(TableObject):
                     lower = 0
                 else:
                     lower = MonsterObject.get(e).rank
-                upper = self.leader.rank
                 candidates = [m for m in MonsterObject.ranked
                               if lower <= m.rank < upper
                               and m.index not in self.banned_bosses]
@@ -576,7 +576,9 @@ class FormationObject(TableObject):
                 upper_index = max(len(candidates)-2, 0)
                 index = random.randint(0, upper_index)
                 index = random.randint(0, index)
-                new.append(candidates[index].index)
+                chosen = candidates[index]
+                upper = min(upper, chosen.rank)
+                new.append(chosen.index)
             if len(new) == 2:
                 new = [new[0], boss_index, new[1]]
             else:
