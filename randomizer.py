@@ -89,6 +89,7 @@ class TreasureIndexObject(TableObject):
         )
     desirable_left = list(DESIRABLE_ITEMS)
     undesirable_left = list(UNDESIRABLE_ITEMS)
+    well_hidden = set([])
 
     def __repr__(self):
         return "%x: %s" % (self.index, self.contents_name)
@@ -147,6 +148,10 @@ class TreasureIndexObject(TableObject):
                 value = self.undesirable_left.pop()
             else:
                 value = 0x12  # seed
+
+        if (value not in [0x12, 0x14] and value in DESIRABLE_ITEMS
+                and self.is_consumable):
+            self.well_hidden.add(value)
         self.contents = value
 
 
@@ -568,7 +573,8 @@ class FormationObject(TableObject):
                               and m.index not in self.banned_bosses]
                 if not candidates:
                     return
-                index = random.randint(0, len(candidates)-1)
+                upper_index = max(len(candidates)-2, 0)
+                index = random.randint(0, upper_index)
                 index = random.randint(0, index)
                 new.append(candidates[index].index)
             if len(new) == 2:
@@ -637,19 +643,13 @@ class BattleFormationObject(TableObject):
 
     def mutate(self):
         if self.index == 0:
-            f = FormationObject.get_unused()
+            self.become_boss()
+            f = self.formations[0]
             f.enemy_ids = [0x42, 0x42, 0xFF]
-            f.unknown = 0
-            f.mutated = True
-            new_ids = [f.index] * 3
-            self.formation_ids = new_ids
-            br = BattleRoundsObject.get(0)
-            br.num_rounds = 1
-            br.mutated = True
-            br2 = BattleRewardObject.get(0)
-            br2.reward = 0x4000 | random.choice(DESIRABLE_ITEMS)
-            br2.mutated = True
             return
+
+        if self.index < 20 and random.randint(1, 4) == 4:
+            self.become_boss()
 
         if self.is_boss:
             return
@@ -666,6 +666,46 @@ class BattleFormationObject(TableObject):
         if len(set(new_ids)) < len(set(self.formation_ids)):
             return
         self.formation_ids = new_ids
+
+    def become_boss(self):
+        flamerus_rank = MonsterObject.get(0x4a).rank
+        battlefields = [bf for bf in BattleFormationObject.ranked
+                        if bf.index < 20]
+        my_index = battlefields.index(self)
+        candidates = [m for m in MonsterObject.ranked
+                      if m.rank >= flamerus_rank]
+        new_index = int(round(my_index * (len(candidates) / 20.0)))
+        new_index = mutate_normal(new_index, minimum=0,
+                                  maximum=len(candidates)-1)
+        leader = candidates[new_index]
+        candidates = [m for m in MonsterObject.ranked
+                      if m.rank < leader.rank]
+        max_index = len(candidates)-1
+        follow_index = random.randint(random.randint(0, max_index), max_index)
+        follower = candidates[follow_index].index
+        if random.randint(0, max_index) >= follow_index:
+            follow2_index = random.randint(
+                random.randint(0, follow_index), follow_index)
+            follower2 = candidates[follow2_index].index
+        else:
+            follower2 = 0xFF
+        new_ids = [follower, leader.index, follower2]
+        f = FormationObject.get_unused()
+        f.enemy_ids = new_ids
+        self.formation_ids = [f.index] * 3
+        f.mutated = True
+        br = BattleRoundsObject.get(self.index)
+        br.num_rounds = 1
+        br.mutated = True
+        br2 = BattleRewardObject.get(self.index)
+        br2.reward = 0x4000
+        if TreasureIndexObject.well_hidden:
+            value = random.choice(sorted(TreasureIndexObject.well_hidden))
+            TreasureIndexObject.well_hidden.remove(value)
+        else:
+            value = random.choice(DESIRABLE_ITEMS)
+        br2.reward |= value
+        br2.mutated = True
 
     @classmethod
     def mutate_all(cls):
@@ -690,20 +730,6 @@ if __name__ == "__main__":
     hexify = lambda x: "{0:0>2}".format("%x" % x)
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
-    #for m in MonsterObject.every:
-    #    print "%x" % m.index, m.rank, m.name.strip(), m.hp, m.is_boss
-    #for f in FormationObject.every:
-    #    print f
-    '''
-    for bf in BattleFormationObject.every:
-        print bf
-        print
-    for t in TreasureIndexObject.every:
-        print t
-    print
-    for index in TreasureIndexObject.desirable_left:
-        print itemnames[index]
-    '''
     clean_and_write(ALL_OBJECTS)
     write_title_screen(get_outfile(), get_seed(), get_flags())
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
