@@ -1,6 +1,6 @@
 Final Fantasy Mystic Quest "A Terrible Secret" Randomizer
-Version:    4
-Date:       July 24, 2016
+Version:    5
+Date:       July 30, 2016
 URL:        https://github.com/abyssonym/terriblesecret
 Contact:    https://twitter.com/abyssonym
             https://www.twitch.tv/abyssonym
@@ -17,6 +17,7 @@ Flags:
     Input the following flags to customize your randomization experience.
 
     c  Randomize character stats.
+    f  Randomize formations.
     m  Randomize enemy stats.
     t  Randomize treasure.
 
