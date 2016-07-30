@@ -238,7 +238,7 @@ class MonsterObject(TableObject):
 
     @property
     def is_boss(self):
-        return self.index >= 57
+        return self.index >= 0x3A
 
     @property
     def name(self):
@@ -318,6 +318,15 @@ class BattleRewardObject(TableObject):
         if not self.is_item:
             return "NONE"
         return itemnames[self.reward & 0xFF]
+
+    @property
+    def contents_description(self):
+        if self.is_item:
+            return self.contents_name
+        elif self.is_xp:
+            return "%s XP" % self.value
+        elif self.is_gp:
+            return "%s GP" % self.value
 
     def cleanup(self):
         assert not (self.is_xp and self.is_item)
@@ -415,6 +424,90 @@ class BattleRoundsObject(TableObject):
     mutate_attributes = {"num_rounds": (0, 0xFF)}
 
 
+class FormationObject(TableObject):
+    def read_data(self, *args, **kwargs):
+        super(FormationObject, self).read_data(*args, **kwargs)
+        if self.pointer >= BattleFormationObject.get(0).pointer:
+            self.enemy_ids = [0xFF] * 3
+            self.unknown = 0
+
+    def __repr__(self):
+        if self.is_broken:
+            return "%x: BROKEN" % self.index
+        return "%x: %s (%x)" % (self.index,
+            ", ".join([e.name.strip() for e in self.enemies]), self.unknown)
+
+    @property
+    def is_broken(self):
+        return any([(m & 0x7F) > 0x50 and m != 0xFF for m in self.enemy_ids])
+
+    @property
+    def is_boss(self):
+        return self.enemies and self.leader.is_boss
+
+    @property
+    def enemies(self):
+        return [MonsterObject.get(eid & 0x7F) for eid in self.enemy_ids
+                if eid < 0xFF]
+
+    @property
+    def leader(self):
+        if len(self.enemies) == 3:
+            return MonsterObject.get(self.enemy_ids[1] & 0x7F)
+        else:
+            return self.enemies[0]
+
+    @property
+    def rank(self):
+        if self.is_broken or not self.enemies:
+            return -1
+        return max([e.rank for e in self.enemies])
+
+    @classmethod
+    def get_unused(self):
+        return [f for f in self.every if not f.enemies].pop()
+
+
+class BattleFormationObject(TableObject):
+    def __repr__(self):
+        return "%x %s %s\n%s" % (
+            self.index, BattleRoundsObject.get(self.index).num_rounds,
+            BattleRewardObject.get(self.index).contents_description,
+            "\n".join([str(f) for f in self.formations]))
+
+    @property
+    def formations(self):
+        return [FormationObject.get(f) for f in self.formation_ids]
+
+    @property
+    def rank(self):
+        return max(f.rank for f in self.formations)
+
+    def mutate(self):
+        if self.index == 0:
+            f = FormationObject.get_unused()
+            f.enemy_ids = [0x42, 0x42, 0xFF]
+            f.unknown = 0
+            new_ids = [f.index] * 3
+        else:
+            new_ids = [f.get_similar().index for f in self.formations]
+        self.formation_ids = new_ids
+
+    def write_data(self, filename):
+        NEW_LOCATION = 0x17ee0
+        pointer = NEW_LOCATION + (3 * self.index)
+        super(BattleFormationObject, self).write_data(pointer=pointer, filename=filename)
+
+
+def move_battlefield_data(outfile):
+    RETRIEVE_LOCATION = 0x10c64
+    f = open(outfile, "r+b")
+    f.seek(RETRIEVE_LOCATION)
+    f.write(chr(0xe0))
+    f.write(chr(0xfe))
+    f.close()
+
+
 if __name__ == "__main__":
     print ('You are using the Final Fantasy Mystic Quest "A Terrible Secret" '
            'randomizer version %s.' % VERSION)
@@ -425,7 +518,20 @@ if __name__ == "__main__":
     hexify = lambda x: "{0:0>2}".format("%x" % x)
     numify = lambda x: "{0: >3}".format(x)
     minmax = lambda x: (min(x), max(x))
+    for m in MonsterObject.every:
+        print "%x" % m.index, m.name
+    for f in FormationObject.ranked:
+        print f.rank, f
+    for bf in BattleFormationObject.ranked:
+        print bf
+        print
+    bf = BattleFormationObject.get(0)
+    print bf.formations
+    #bf.formation_ids = [0xe8] * 3
+    #f = FormationObject.get(0x57)
+    #f.enemy_ids = [0xa4, 0xFF, 0xFF]
     clean_and_write(ALL_OBJECTS)
+    move_battlefield_data(get_outfile())
     write_title_screen(get_outfile(), get_seed(), get_flags())
     rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
     finish_interface()
