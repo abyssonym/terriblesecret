@@ -239,7 +239,9 @@ class MonsterObject(TableObject):
 
     @classproperty
     def after_order(self):
-        return [FormationObject]
+        if 'f' in get_flags():
+            return [FormationObject]
+        return []
 
     @property
     def rank(self):
