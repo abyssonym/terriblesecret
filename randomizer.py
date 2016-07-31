@@ -9,7 +9,7 @@ from os import path
 
 
 RANDOMIZE = True
-VERSION = 5
+VERSION = 6
 ALL_OBJECTS = None
 
 try:
