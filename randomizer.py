@@ -237,6 +237,10 @@ class MonsterObject(TableObject):
         "hp", "strength", "defense", "speed", "magic",
         ]
 
+    @classproperty
+    def after_order(self):
+        return [FormationObject]
+
     @property
     def rank(self):
         values = [getattr(self, attr) for attr in
@@ -498,6 +502,10 @@ class FormationObject(TableObject):
     def after_order(self):
         return [BattleFormationObject]
 
+    @property
+    def maxrank(self):
+        return max([e.rank for e in self.enemies])
+
     def read_data(self, *args, **kwargs):
         super(FormationObject, self).read_data(*args, **kwargs)
         if self.pointer >= BattleFormationObject.get(0).pointer:
@@ -602,10 +610,16 @@ class FormationObject(TableObject):
         if len(self.enemies) <= 1:
             return
 
+        ranked_monsters = MonsterObject.ranked
         for i, e in enumerate(self.enemies):
             if i == len(self.enemies)-2:
                 continue
-            new = e.get_similar()
+            index = ranked_monsters.index(e)
+            width = random.randint(2, random.randint(2, random.randint(
+                2, len(ranked_monsters))))
+            candidates = ranked_monsters[max(index-width, 0):index+width+1]
+            assert e in candidates
+            new = e.get_similar(candidates)
             if new.index in self.banned_bosses:
                 continue
             if new in self.done_bosses and random.randint(1, 10) != 10:
@@ -669,11 +683,13 @@ class BattleFormationObject(TableObject):
 
         if self.index >= 20:
             leaders = [f.leader for f in self.formations]
+            maxrank = max([f.maxrank for f in self.formations])
             assert len(set(leaders)) == 1
             leader = leaders[0]
-            candidates = [f for f in FormationObject.every if f.leader == leader]
+            candidates = [f for f in FormationObject.every
+                          if f.leader == leader and f.maxrank <= maxrank]
         else:
-            candidates = None
+            candidates = list(FormationObject.every)
 
         new_ids = [f.get_similar(candidates).index for f in self.formations]
         if len(set(new_ids)) < len(set(self.formation_ids)):
