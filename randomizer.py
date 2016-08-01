@@ -502,7 +502,9 @@ class FormationObject(TableObject):
 
     @classproperty
     def after_order(self):
-        return [BattleFormationObject]
+        if "t" in get_flags():
+            return [BattleFormationObject]
+        return []
 
     @property
     def maxrank(self):
@@ -510,9 +512,6 @@ class FormationObject(TableObject):
 
     def read_data(self, *args, **kwargs):
         super(FormationObject, self).read_data(*args, **kwargs)
-        if self.pointer >= BattleFormationObject.get(0).pointer:
-            self.enemy_ids = [0xFF] * 3
-            self.unknown = 0
 
     def __repr__(self):
         if self.is_broken:
@@ -671,14 +670,9 @@ class BattleFormationObject(TableObject):
         return len(set(self.formation_ids)) == 1 and self.formations[0].is_boss
 
     def mutate(self):
-        if self.index == 0:
-            self.become_boss()
-            f = self.formations[0]
-            f.enemy_ids = [0x42, 0x42, 0xFF]
-            return
-
         if self.index < 20 and random.randint(1, 4) == 4:
             self.become_boss()
+            return
 
         if self.is_boss:
             return
@@ -718,9 +712,9 @@ class BattleFormationObject(TableObject):
             follow2_index = random.randint(
                 random.randint(0, follow_index), follow_index)
             follower2 = candidates[follow2_index].index
+            new_ids = [follower, leader.index, follower2]
         else:
-            follower2 = 0xFF
-        new_ids = [follower, leader.index, follower2]
+            new_ids = [leader.index, follower, 0xFF]
         f = FormationObject.get_unused()
         f.enemy_ids = new_ids
         self.formation_ids = [f.index] * 3
