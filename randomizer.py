@@ -470,7 +470,9 @@ class CharacterObject(TableObject):
                 (self.known_black and self.white and
                     not self.black and not self.known_white)):
             self.white, self.black = self.black, self.white
-        if "DemoPlay" in self.name:
+        if self.index == 0:
+            self.known_magic = 0
+            self.known_wizard = 0
             return
         for attr in ["white", "black", "wizard"]:
             if getattr(self, "known_%s" % attr):
