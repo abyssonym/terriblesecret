@@ -23,15 +23,19 @@ itemnames = [line.strip() for line in open(ITEMNAMESFILE).readlines()]
 CONSUMABLES = [0x10, 0x11, 0x12, 0x13, 0xDD, 0xDE, 0xDF]
 BANNED_ITEMS = [0x07, 0x08, 0x29, 0x2a, 0x2b]  # Rock, Cap, All bombs
 BROKEN_ITEMS = [i for i in range(0x10) +
-    [0x2c, 0x2d, 0x2e, 0x36, 0x37, 0x38, 0x39, 0x3c] if i not in BANNED_ITEMS]
+    [0x2c, 0x2d, 0x2e, 0x35, 0x36, 0x37, 0x38, 0x3c] if i not in BANNED_ITEMS]
 UNDESIRABLE_ITEMS = [0x20, 0x23, 0x26, 0x2c, 0x2d, 0x2e,
-                     0x32, 0x35, 0x36, 0x37, 0x38, 0x3c]
+                     0x32, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3c]
 UNDESIRABLE_ITEMS = sorted(set(UNDESIRABLE_ITEMS + BROKEN_ITEMS))
 DESIRABLE_ITEMS = [i for i in range(0x10, 0x40) if i == 0x12 or i not in
    CONSUMABLES + UNDESIRABLE_ITEMS + BROKEN_ITEMS + BANNED_ITEMS]
-assert not set(BANNED_ITEMS) & set(
-    DESIRABLE_ITEMS + UNDESIRABLE_ITEMS + BROKEN_ITEMS + CONSUMABLES)
 assert not set(DESIRABLE_ITEMS) & set(UNDESIRABLE_ITEMS)
+LOW_EQUIP_ITEMS = [0x20, 0x21, 0x23, 0x24, 0x26, 0x27,
+                   0x2F, 0x30, 0x32, 0x33, 0x39, 0x3a]
+UNDESIRABLE_ITEMS = sorted(set(UNDESIRABLE_ITEMS + LOW_EQUIP_ITEMS))
+assert not set(BANNED_ITEMS) & set(
+    DESIRABLE_ITEMS + UNDESIRABLE_ITEMS + BROKEN_ITEMS
+    + CONSUMABLES + LOW_EQUIP_ITEMS)
 chest_items = None
 
 
@@ -127,10 +131,6 @@ class TreasureIndexObject(TableObject):
     def mutate(self):
         global chest_items
         if self.is_key:
-            return
-
-        if self.index == 5:
-            # focus tower bomb chest
             return
 
         any_left = self.desirable_left + self.undesirable_left
