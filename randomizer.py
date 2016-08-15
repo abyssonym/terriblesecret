@@ -745,7 +745,7 @@ class BattleFormationObject(TableObject):
         follower = candidates[follow_index].index
         if random.randint(0, max_index) >= follow_index:
             follow2_index = random.randint(
-                random.randint(0, follow_index), follow_index)
+                random.randint(max_index-follow_index, max_index), max_index)
             follower2 = candidates[follow2_index].index
             new_ids = [follower, leader.index, follower2]
         else:
