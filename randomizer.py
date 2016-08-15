@@ -214,6 +214,11 @@ class ArmorObject(CombatObject, ItemNameMixin, TableObject):
             self.element = self.element & 0x7
             self.element |= value
 
+        if self.index + self.first_name_index not in UNDESIRABLE_ITEMS:
+            if self.status & 0x80 and random.randint(1, 10) == 10:
+                return
+            self.status &= 0x7F
+
 
 class DropObject(TableObject):
     flag = "t"
