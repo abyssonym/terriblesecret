@@ -512,6 +512,23 @@ class FormationObject(TableObject):
     def maxrank(self):
         return max([e.rank for e in self.enemies])
 
+    @property
+    def music(self):
+        return (self.misc >> 2) & 0x3
+
+    def set_music(self, value):
+        # 0-3 regular, boss, final battle, play through
+        self.misc &= 0b11110011
+        self.misc |= (value << 2)
+
+    @property
+    def flying(self):
+        return self.misc & 0b00100000
+
+    @property
+    def inescapable(self):
+        return self.misc & 0b01000000
+
     def read_data(self, *args, **kwargs):
         super(FormationObject, self).read_data(*args, **kwargs)
 
@@ -519,7 +536,7 @@ class FormationObject(TableObject):
         if self.is_broken:
             return "%x: BROKEN" % self.index
         return "%x: %s (%x)" % (self.index,
-            ", ".join([e.name.strip() for e in self.enemies]), self.unknown)
+            ", ".join([e.name.strip() for e in self.enemies]), self.misc)
 
     @property
     def is_broken(self):
@@ -562,7 +579,7 @@ class FormationObject(TableObject):
                        if f.index not in used]
         for f in self.unused:
             f.enemy_ids = [0xFF] * 3
-            f.unknown = 0
+            f.misc = 0
 
     @classmethod
     def get_unused(self):
@@ -641,9 +658,23 @@ class FormationObject(TableObject):
                 self.enemy_ids = old_ids
                 break
 
+    @classmethod
+    def full_cleanup(cls):
+        specials = [f for f in cls.every
+                    if hasattr(f, "special_boss") and f.special_boss]
+        specials = sorted(specials, key=lambda f: f.rank)
+        for i, s in enumerate(specials):
+            if i <= len(specials) / 2:
+                s.set_music(3)
+            else:
+                s.set_music(1)
+        specials[-1].set_music(2)
+        super(FormationObject, cls).full_cleanup()
+
 
 class BattleFormationObject(TableObject):
     flag = "t"
+    num_special = 0
 
     @classproperty
     def after_order(self):
@@ -672,8 +703,10 @@ class BattleFormationObject(TableObject):
         return len(set(self.formation_ids)) == 1 and self.formations[0].is_boss
 
     def mutate(self):
-        if self.index < 20 and random.randint(1, 4) == 4:
+        if (self.index < 20 and random.randint(1, 4) == 4) or (
+                self.index == 19 and BattleFormationObject.num_special < 5):
             self.become_boss()
+            BattleFormationObject.num_special += 1
             return
 
         if self.is_boss:
@@ -718,6 +751,7 @@ class BattleFormationObject(TableObject):
         else:
             new_ids = [leader.index, follower, 0xFF]
         f = FormationObject.get_unused()
+        f.special_boss = True
         f.enemy_ids = new_ids
         self.formation_ids = [f.index] * 3
         f.mutated = True
