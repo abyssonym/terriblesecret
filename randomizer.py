@@ -539,7 +539,7 @@ class FormationObject(TableObject):
         if not self.enemies:
             return None
         if len(self.enemies) >= 2:
-            return MonsterObject.get(self.enemy_ids[1] & 0x7F)
+            return self.enemies[1]
         else:
             return self.enemies[0]
 
@@ -597,7 +597,7 @@ class FormationObject(TableObject):
                     return
                 upper_index = max(len(candidates)-2, 0)
                 index = random.randint(0, upper_index)
-                index = random.randint(0, index)
+                index = random.randint(index/2, index)
                 chosen = candidates[index]
                 upper = min(upper, chosen.rank)
                 new.append(chosen.index)
