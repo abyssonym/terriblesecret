@@ -640,8 +640,8 @@ class FormationObject(TableObject):
             if i == len(self.enemies)-2:
                 continue
             index = ranked_monsters.index(e)
-            width = random.randint(2, random.randint(2, random.randint(
-                2, len(ranked_monsters))))
+            width = random.randint(2, random.randint(
+                2, len(ranked_monsters)))
             candidates = ranked_monsters[max(index-width, 0):index+width+1]
             assert e in candidates
             new = e.get_similar(candidates)
