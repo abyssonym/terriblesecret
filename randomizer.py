@@ -679,11 +679,12 @@ class FormationObject(TableObject):
 
 
 class BattleFormationObject(TableObject):
-    flag = "t"
     num_special = 0
 
     @classproperty
     def after_order(self):
+        if "t" not in get_flags():
+            return []
         return [TreasureIndexObject]
 
     def __repr__(self):
@@ -709,6 +710,9 @@ class BattleFormationObject(TableObject):
         return len(set(self.formation_ids)) == 1 and self.formations[0].is_boss
 
     def mutate(self):
+        if "f" not in get_flags():
+            return
+
         if (self.index < 20 and random.randint(1, 4) == 4) or (
                 self.index == 19 and BattleFormationObject.num_special < 5):
             self.become_boss()
@@ -764,6 +768,9 @@ class BattleFormationObject(TableObject):
         br = BattleRoundsObject.get(self.index)
         br.num_rounds = 1
         br.mutated = True
+
+        if "t" not in get_flags():
+            return
         br2 = BattleRewardObject.get(self.index)
         br2.reward = 0x4000
         done_items = [t.reward & 0xFF for t in BattleRewardObject.every
