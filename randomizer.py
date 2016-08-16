@@ -630,7 +630,7 @@ class FormationObject(TableObject):
             if len(new) == 2:
                 new = [new[0], boss_index, new[1]]
             else:
-                new = [boss_index] + new
+                new = new + [boss_index]
             while len(new) < 3:
                 new += [0xFF]
             self.enemy_ids = new
