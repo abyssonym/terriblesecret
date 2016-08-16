@@ -639,16 +639,12 @@ class FormationObject(TableObject):
         if len(self.enemies) <= 1:
             return
 
-        ranked_monsters = MonsterObject.ranked
         for i, e in enumerate(self.enemies):
-            if i == len(self.enemies)-2:
+            if len(self.enemies) >= 2 and i == 1:
                 continue
-            index = ranked_monsters.index(e)
-            width = random.randint(2, random.randint(
-                2, len(ranked_monsters)))
-            candidates = ranked_monsters[max(index-width, 0):index+width+1]
-            assert e in candidates
-            new = e.get_similar(candidates)
+            elif len(self.enemies) == 1:
+                continue
+            new = e.get_similar()
             if new.index in self.banned_bosses:
                 continue
             if new in self.done_bosses and random.randint(1, 10) != 10:
