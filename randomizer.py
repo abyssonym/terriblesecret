@@ -133,6 +133,10 @@ class TreasureIndexObject(TableObject):
         if self.is_key:
             return
 
+        if self.index in [0x6A, 0x6B, 0x6C, 0x6E]:
+            self.contents = 0x2A
+            return
+
         any_left = self.desirable_left + self.undesirable_left
         value = None
         if self.is_consumable and (not any_left or random.randint(1, 7) != 7):
