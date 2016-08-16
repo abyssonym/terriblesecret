@@ -668,12 +668,13 @@ class FormationObject(TableObject):
         specials = [f for f in cls.every
                     if hasattr(f, "special_boss") and f.special_boss]
         specials = sorted(specials, key=lambda f: f.rank)
-        for i, s in enumerate(specials):
-            if i <= len(specials) / 2:
-                s.set_music(3)
-            else:
-                s.set_music(1)
-        specials[-1].set_music(2)
+        if specials:
+            for i, s in enumerate(specials):
+                if i <= len(specials) / 2:
+                    s.set_music(3)
+                else:
+                    s.set_music(1)
+            specials[-1].set_music(2)
         super(FormationObject, cls).full_cleanup()
 
 
