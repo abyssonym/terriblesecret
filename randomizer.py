@@ -1,4 +1,4 @@
-from randomtools.tablereader import TableObject
+from randomtools.tablereader import TableObject, get_global_label
 from randomtools.utils import (
     classproperty, mutate_normal, shuffle_bits,
     utilrandom as random)
@@ -806,15 +806,17 @@ if __name__ == "__main__":
                        if isinstance(g, type) and issubclass(g, TableObject)
                        and g not in [TableObject]]
         run_interface(ALL_OBJECTS, snes=True)
-        DemoPlay = CharacterObject.get(0)
-        DemoPlay.name_text = [texttable[c] for c in "Abyssnym"]
-        while len(DemoPlay.name_text) < 16:
-            DemoPlay.name_text += [0x03]
+        if get_global_label() == "FFMQ_NA_1.1":
+            DemoPlay = CharacterObject.get(0)
+            DemoPlay.name_text = [texttable[c] for c in "Abyssnym"]
+            while len(DemoPlay.name_text) < 16:
+                DemoPlay.name_text += [0x03]
         hexify = lambda x: "{0:0>2}".format("%x" % x)
         numify = lambda x: "{0: >3}".format(x)
         minmax = lambda x: (min(x), max(x))
         clean_and_write(ALL_OBJECTS)
-        write_title_screen(get_outfile(), get_seed(), get_flags())
+        if get_global_label() == "FFMQ_NA_1.1":
+            write_title_screen(get_outfile(), get_seed(), get_flags())
         rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
         finish_interface()
     except Exception, e:

@@ -1,1 +1,2 @@
 FFMQ_NA_1.1     f7faeae5a847c098d677070920769ca2    tables_list.txt
+FFMQ_JP         5164060bd3350d7a6325ec8ae80bba54    tables_list_jp.txt
