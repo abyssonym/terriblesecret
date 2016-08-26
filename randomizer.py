@@ -817,6 +817,16 @@ if __name__ == "__main__":
         clean_and_write(ALL_OBJECTS)
         if get_global_label() == "FFMQ_NA_1.1":
             write_title_screen(get_outfile(), get_seed(), get_flags())
+            enemy_jump = 0xef8e
+        elif get_global_label() == "FFMQ_JP":
+            enemy_jump = 0xef92
+        x = raw_input("Do you want to give Benjamin the power "
+                      "to jump over enemies? (y/n) ")
+        if x and x[0].lower() == 'y':
+            f = open(get_outfile(), "r+b")
+            f.seek(enemy_jump)
+            f.write(chr(0x80))
+            f.close()
         rewrite_snes_meta("FFMQ-R", VERSION, megabits=24, lorom=True)
         finish_interface()
     except Exception, e:
