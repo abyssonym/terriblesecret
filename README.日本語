@@ -1,0 +1,31 @@
+クロノ・トリガー ランダマイザ
+バージョン: 8
+日: August 8, 2016
+ダウンロード:
+    https://github.com/abyssonym/terriblesecret/archive/master.zip
+連絡先:
+    https://twitter.com/abyssonym
+    https://www.twitch.tv/abyssonym
+
+FF USAのROMイメージが必要です。正しいROMはこのハッシュです。日本語版です。
+    MD5 - 5164060bd3350d7a6325ec8ae80bba54
+
+オプション
+    c  キャラのステータス
+    f  陣形
+    m  敵のステータス
+    t  宝
+
+他の作品
+    日本語版は互換性ある
+        ファイナルファンタジータクティクス
+            https://github.com/abyssonym/rumble_chaos_crashdown/archive/master.zip
+        クロノ・トリガー
+            https://github.com/abyssonym/eternalnightmare/archive/master.zip
+        スーパーマリオRPG
+            https://github.com/abyssonym/smrpg_gbarp/archive/master.zip
+    日本語版は互換性ない
+        ファイナルファンタジーVI
+            https://github.com/abyssonym/beyondchaos/archive/master.zip
+        ブレス オブ ファイアII 使命の子
+            https://github.com/abyssonym/painsong/archive/master.zip
